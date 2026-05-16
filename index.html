@@ -1,0 +1,441 @@
+<!DOCTYPE html><html lang='zh-Hant'><head><meta charset='utf-8'>
+<title>eBay watch bot — smoke test</title>
+<style>
+:root { color-scheme: dark; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+       background: #0e0e10; color: #e8e8e8; padding: 24px; max-width: 1100px; margin: 0 auto; line-height: 1.45; }
+h1 { color: #fff; margin: 0 0 4px; }
+.subtitle { color: #888; font-size: 13px; margin-bottom: 18px; }
+h2 { color: #5dd8a6; border-bottom: 1px solid #2a2a2e; padding-bottom: 6px; margin-top: 36px; }
+h3 { color: #c0d0e0; margin-top: 26px; }
+
+/* ===== Tabs ===== */
+.tabs > input[type=radio] { display: none; }
+.tab-labels { display: flex; gap: 4px; border-bottom: 1px solid #2a2a2e; margin-bottom: 18px; }
+.tab-labels label {
+  display: inline-block; padding: 10px 18px; cursor: pointer; color: #888;
+  border-bottom: 2px solid transparent; font-weight: 600; user-select: none;
+  margin-bottom: -1px;
+}
+.tab-labels label:hover { color: #ccc; }
+#t-results:checked ~ .tab-labels label[for="t-results"],
+#t-criteria:checked ~ .tab-labels label[for="t-criteria"] { color: #5dd8a6; border-bottom-color: #5dd8a6; }
+.panel { display: none; }
+#t-results:checked  ~ .panels #p-results  { display: block; }
+#t-criteria:checked ~ .panels #p-criteria { display: block; }
+
+/* ===== Summary table (top of results tab) ===== */
+.summary { background: #1a1a1d; padding: 14px 18px; border-radius: 8px; margin-bottom: 24px; }
+.summary table { border-collapse: collapse; }
+.summary td { padding: 3px 18px 3px 0; color: #ccc; }
+.summary td:first-child { color: #888; font-size: 13px; }
+
+/* ===== Listing cards ===== */
+.card { display: flex; background: #181819; border-radius: 8px; padding: 14px;
+        margin-bottom: 12px; border-left: 4px solid #444; }
+.card.high { border-left-color: #5dd8a6; }
+.card.mid  { border-left-color: #d8b95d; }
+.card.low  { border-left-color: #d85d5d; }
+.thumb { flex: 0 0 180px; margin-right: 18px; }
+.thumb img { max-width: 180px; max-height: 180px; border-radius: 6px; background: #222; }
+.body { flex: 1; min-width: 0; }
+.score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.score { font-size: 30px; font-weight: 700; line-height: 1; }
+.high .score { color: #5dd8a6; }
+.mid  .score { color: #d8b95d; }
+.low  .score { color: #d85d5d; }
+.theme { display: inline-block; background: #1f3a2e; color: #5dd8a6; padding: 3px 9px;
+         border-radius: 999px; font-size: 12px; font-weight: 600; }
+.flag  { display: inline-block; background: #3a1f1f; color: #d8a3a3; padding: 3px 9px;
+         border-radius: 999px; font-size: 12px; }
+.title a { color: #9bd3ff; text-decoration: none; font-weight: 600; }
+.title a:hover { text-decoration: underline; }
+.price { color: #d8b95d; font-weight: 600; margin: 4px 0; }
+.rationale { color: #d0d0d0; margin-top: 6px; line-height: 1.55; }
+.meta { color: #777; font-size: 12px; margin-top: 8px; }
+.empty { color: #666; font-style: italic; padding: 12px 0; }
+.footer { color: #555; font-size: 12px; margin-top: 60px; border-top: 1px solid #2a2a2e; padding-top: 10px; }
+
+/* ===== Criteria tab ===== */
+.criteria-intro { background: #1a1a1d; padding: 14px 18px; border-radius: 8px; margin-bottom: 24px; color: #c8c8c8; }
+.search-card { background: #181819; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px;
+               border-left: 3px solid #5dd8a6; }
+.search-card .name { font-weight: 700; color: #fff; margin-bottom: 6px; }
+.search-card .meta-line { color: #888; font-size: 12px; margin-bottom: 8px; }
+.search-card .query { background: #0e0e10; color: #c8e0c0; padding: 10px 12px; border-radius: 6px;
+                      font-family: Consolas, "Courier New", monospace; font-size: 12px;
+                      white-space: pre-wrap; word-break: break-word; margin: 8px 0; }
+.search-card .filter-row { color: #aaa; font-size: 13px; margin: 4px 0; }
+.search-card .filter-row b { color: #ccc; }
+.kw-list { color: #999; font-size: 12px; }
+.kw-list code { background: #2a2a2e; padding: 1px 6px; border-radius: 3px; margin-right: 4px; font-size: 11px; color: #d8a3a3; }
+details summary { cursor: pointer; color: #5dd8a6; user-select: none; }
+details[open] summary { margin-bottom: 8px; }
+.rubric-wrap { background: #161617; border-radius: 8px; padding: 18px 22px; }
+.rubric-wrap h1, .rubric-wrap h2, .rubric-wrap h3 { color: #c0d0e0; }
+.rubric-wrap h1 { border-bottom: 1px solid #2a2a2e; padding-bottom: 6px; font-size: 22px; }
+.rubric-wrap h2 { font-size: 18px; color: #5dd8a6; }
+.rubric-wrap h3 { font-size: 15px; color: #d8b95d; }
+.rubric-wrap table { border-collapse: collapse; margin: 12px 0; width: 100%; }
+.rubric-wrap th, .rubric-wrap td { border: 1px solid #2a2a2e; padding: 6px 10px; text-align: left; font-size: 13px; }
+.rubric-wrap th { background: #1f1f22; color: #ccc; }
+.rubric-wrap code { background: #0e0e10; padding: 1px 6px; border-radius: 3px; font-size: 12px; color: #c8e0c0; }
+.rubric-wrap pre { background: #0e0e10; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.rubric-wrap blockquote { border-left: 3px solid #5dd8a6; padding: 4px 12px; color: #aaa; background: #14181a; margin: 12px 0; }
+.rubric-wrap ul, .rubric-wrap ol { padding-left: 22px; }
+</style></head><body>
+<h1>eBay watch bot — smoke test</h1>
+<div class='subtitle'>2026-05-16 23:24:14 · run summary at top of Results tab</div>
+<div class='tabs'>
+<input type='radio' name='tabs' id='t-results' checked>
+<input type='radio' name='tabs' id='t-criteria'>
+<div class='tab-labels'>
+<label for='t-results'>📋 結果 Results (32)</label>
+<label for='t-criteria'>🔍 評選依據 Selection criteria</label>
+</div>
+<div class='panels'>
+<div class='panel' id='p-results'><div class='summary'><table>
+<tr><td>Searches</td><td>4</td></tr>
+<tr><td>Fetched</td><td>40</td></tr>
+<tr><td>Passed hard filter</td><td>32</td></tr>
+<tr><td>Scored</td><td>32</td></tr>
+<tr><td>API cost</td><td>$0.1859</td></tr>
+<tr><td>Runtime</td><td>199.6s</td></tr>
+</table></div>
+<h2>非正規賽 — practice / warm-up / All-Star / Olympic / FIBA / national team</h2>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/sNAAAeSwPa9puAmC/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>78</span><span class='theme'>B</span></div><div class='title'><a href='https://www.ebay.com/itm/327161629795?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item4c2c5a4c63:g:sNAAAeSwPa9puAmC' target='_blank' rel='noopener'>Mitchell &amp; Ness Michael Jordan 1989 NBA All-Star Game Jersey Red 44 L Stitched </a></div><div class='price'>US$84.99</div><div class='rationale'>1989 NBA All-Star Game Jordan 紅色球衣 — 主題 B (非正規賽) 符合；Mitchell &amp; Ness 復刻製造、全字體電繡、領標清晰，賣家評價 100% (2081 則)。惟為復刻版而非原版 AU，價格 US$84.99 相對台灣均價折扣約 40%，整體品質穩定但缺乏稀缺性。</div><div class='meta'>100.0% · 2081 feedback · Used · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/jmwAAeSwrWdqCIMj/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>76</span><span class='theme'>B</span></div><div class='title'><a href='https://www.ebay.com/itm/377188770208?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item57d233e1a0:g:jmwAAeSwrWdqCIMj' target='_blank' rel='noopener'>Nwot Nike Dri Fit USA Basketball Warm Up Team Issue Shirt Size Xl Gray</a></div><div class='price'>US$49.99</div><div class='rationale'>USA Basketball 官方 Nike Dri-Fit 熱身衣，主題 B (非正規賽) 符合；Team Issue 標示清晰，Nike Swoosh 與 USA Basketball 徽章燙印平整，賣家評價 100% (222 則) 可信度高。NWOT 全新狀態加分。價格 US$49.99 約 NT$1,550，相對台灣均價有折扣。惟缺吊牌與領標特寫，無法確認製造等級 (AU/球員版/Swingman)，故未達 80+。</div><div class='meta'>100.0% · 222 feedback · New without tags · BuyItNow · $0.0063</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/3NYAAeSwEPFqCIHc/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>73</span><span class='theme'>B</span><span class='theme'>C</span><span class='flag'>球員身份未明確</span></div><div class='title'><a href='https://www.ebay.com/itm/366413023907?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item554feb0aa3:g:3NYAAeSwEPFqCIHc' target='_blank' rel='noopener'>2010-11 Portland Trail Blazers #28 Game Issued Black Practice Jersey NBA Live</a></div><div class='price'>US$99.99</div><div class='rationale'>2010-11 Trail Blazers Game Issued 練習衣，主題 B (非正規賽) + C (高規格製造) 符合；adidas 製造、NBA Live 10 贊助標清晰，黑白雙版狀態佳。惟 #28 球員身份未在標題或描述中明確，無法判斷球員熱度加成；價格 US$99.99 (約 NT$3,100) 相對合理但無特殊折扣。</div><div class='meta'>99.9% · 363818 feedback · condition unknown · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/apMAAeSwgntqCIBy/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>73</span><span class='theme'>B</span><span class='theme'>C</span><span class='flag'>尺寸超大（4XL Tall）</span><span class='flag'>狀態描述簡略</span></div><div class='title'><a href='https://www.ebay.com/itm/366413012345?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item554feadd79:g:apMAAeSwgntqCIBy' target='_blank' rel='noopener'>Los Angeles Clippers Reebok NBA Team Issued LS Warm Up Shirt Red 4XL Tall</a></div><div class='price'>US$49.99</div><div class='rationale'>Clippers Reebok Team Issued 熱身衣符合主題 B (非正規賽) + C (高規格製造)；Reebok 年代製造與電繡字體相符，賣家評價優異 (99.9%)。惟 4XL Tall 尺寸極大市場有限，狀態僅標 Used 未詳述磨損程度，價格 US$49.99 相對合理但無特別優勢。</div><div class='meta'>99.9% · 363818 feedback · Used · BuyItNow · $0.0049</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/NX8AAeSwLGBqCIHI/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>A</span><span class='theme'>B</span><span class='flag'>狀態有明顯汙漬</span><span class='flag'>非NBA球衣</span></div><div class='title'><a href='https://www.ebay.com/itm/137315579340?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item1ff8a575cc:g:NX8AAeSwLGBqCIHI' target='_blank' rel='noopener'>1990s FIBA Basketball Referee Game Issued Grey Jersey 2XL DP50657</a></div><div class='price'>US$99.99</div><div class='rationale'>1990s FIBA裁判賽事版灰色球衣，主題A(復古絕版)與B(非正規賽)符合；Champion製造、洗標清晰、價格低廉(約NT$3,200)。惟商品非NBA而是FIBA國際賽事，且前胸與腋下有明顯褐色汙漬與磨損，狀態約60-70%，與賣家市場定位(NBA球衣)有偏差。</div><div class='meta'>99.9% · 363818 feedback · condition unknown · BuyItNow · $0.0062</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/m3MAAeSwWxpqCH~-/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>71</span><span class='theme'>B</span><span class='theme'>C</span><span class='flag'>尺寸超大（6XL +4&quot;）</span><span class='flag'>無球員名字</span></div><div class='title'><a href='https://www.ebay.com/itm/800027155809?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=itemba45559d61:g:m3MAAeSwWxpqCH~-' target='_blank' rel='noopener'>New Orleans Pelicans Adidas Team Issued Practice Basketball Jersey White 6XL +4&quot;</a></div><div class='price'>US$49.99</div><div class='rationale'>Pelicans adidas Team Issued 練習衣，主題 B (非正規賽) + C (高規格製造) 符合；領標與製造細節清晰，賣家評價優（99.9%）。惟 6XL +4&quot; 尺寸極大，市場受眾有限；無球員名字降低故事性。價格 US$49.99 相對便宜但難以轉售。</div><div class='meta'>99.9% · 363818 feedback · Used · BuyItNow · $0.0041</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/asgAAeSwICVqCINE/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>B</span><span class='flag'>NCAA 非 NBA</span><span class='flag'>球員熱度極低</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/377188772763?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item57d233eb9b:g:asgAAeSwICVqCINE' target='_blank' rel='noopener'>UNDER ARMOUR AUTHENTIC NCAA HARTFORD HAWKS PRACTICE BASKETBALL JERSEY L</a></div><div class='price'>US$39.99</div><div class='rationale'>Hartford Hawks NCAA 練習衣雖符合主題 B (練習衣)，但賣家社團專注 NBA 球衣，NCAA 大學球衣與核心市場定位不符；球員無名氣、無故事性、無稀缺性，價格雖低但難以吸引目標客群。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/6AsAAeSwNIpqCHw9/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>B</span><span class='flag'>NCAA 非 NBA</span><span class='flag'>球員熱度無</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/397955569336?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item5ca80016b8:g:6AsAAeSwNIpqCHw9' target='_blank' rel='noopener'>NIKE AUTHENTIC NCAA HARTFORD UNIVERSITY HAWKS PRACTICE BASKETBALL JERSEY SIZE L</a></div><div class='price'>US$39.99</div><div class='rationale'>Hartford University NCAA 練習衣，雖符合主題 B (練習衣)，但賣家市場專注 NBA 球衣，NCAA 大學球衣無球員故事性與收藏價值；US$39.99 價格低廉但難以轉售至目標客群。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/hqkAAeSw~U1qCHst/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>B</span><span class='flag'>非 NBA 商品</span><span class='flag'>NCAA 大學球衣</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/397955566751?_skw=%28NBA%2Cbasketball%29+%28practice%2Cwarmup%2C%22warm+up%22%2C%22warm-up%22%2Cshooting%2Cshootaround%2C%22shoot+around%22%2C%22all+star%22%2C%22all-star%22%2Colympic%2Colympics%2CFIBA%2C%22summer+league%22%2C%22rising+stars%22%2C%22world+cup%22%2Cnational%2C%22team+usa%22%2Cfrance%29+%28jersey%2Cshirt%2Ctop%2Creversible%29&amp;hash=item5ca8000c9f:g:hqkAAeSw~U1qCHst' target='_blank' rel='noopener'>NIKE AUTHENTIC NCAA HARTFORD UNIVERSITY HAWKS PRACTICE BASKETBALL JERSEY SIZE XL</a></div><div class='price'>US$39.99</div><div class='rationale'>Hartford University NCAA 練習衣雖符合主題 B (練習衣)，但賣家核心市場為 NBA 絕版與高規格商品，NCAA 大學球衣超出定位範圍；球員無名、稀缺度低、價格雖便宜但無法融入社團收藏邏輯。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<h2>復古外套 — NBA outerwear / windbreakers / warm-up jackets</h2>
+<div class='card high'><div class='thumb'><img src='https://i.ebayimg.com/images/g/Qy0AAeSwrURqAg3H/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>84</span><span class='theme'>A</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/168379794415?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item273437c3ef:g:Qy0AAeSwrURqAg3H' target='_blank' rel='noopener'>Vtg 90s Chicago Bulls Champion Jacket Mens 2XL NBA Zip Away Hood Coat Black Red</a></div><div class='price'>US$149.99</div><div class='rationale'>1990s Champion Bulls 風衣，主題 A (復古絕版) + D (復古外套) 雙符合；Champion 年代製造、電繡包邊與紅黑配色典型，狀態約 85–90%，賣家評價 99.9% (932 則)，價格 US$149.99 相較台灣均價折扣約 40–50%。</div><div class='meta'>99.9% · 932 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/lHoAAeSwY5xqCIZ2/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>73</span><span class='theme'>A</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/127868194618?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item1dc589cf3a:g:lHoAAeSwY5xqCIZ2' target='_blank' rel='noopener'>Vintage Golden State Warriors Track Jacket Mens Large Blue UNK Basketball NBA</a></div><div class='price'>US$44.99</div><div class='rationale'>Warriors 復古 track jacket 符合主題 A (復古絕版) 與 D (復古外套)；UNK 製造、電繡 W 徽章、藍金橙配色典型 2000s 風格，狀態約 85%；US$44.99 相較台灣均價 NT$2,500+ 折扣約 65%，性價比優。惟球隊熱度普通、無特殊故事框架，故分數中上。</div><div class='meta'>98.7% · 7319 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/bDsAAeSwgyhoxdXq/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/366412998243?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item554feaa663:g:bDsAAeSwgyhoxdXq' target='_blank' rel='noopener'>Charlotte Hornets Jordan Full Zip Basketball Jacket Hooded Purple Teal Men Med O</a></div><div class='price'>US$69.0</div><div class='rationale'>Charlotte Hornets Jordan 紫青配色連帽全拉鍊外套，主題 D (復古外套) 符合；Jordan 品牌製造、洗標清晰、做工完整，狀態約 85–90%；US$69 相較台灣均價 NT$2,200–2,800 折扣約 40%，但球隊與年代熱度普通，無特殊限定或異色加成。</div><div class='meta'>100.0% · 3793 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/QY4AAOSwNLxnkGdW/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/236819962153?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item372391d929:g:QY4AAOSwNLxnkGdW' target='_blank' rel='noopener'>CHICAGO BULLS NBA Bomber Jacket Mens Large All Over Print Satin Snap Buttons</a></div><div class='price'>US$55.4</div><div class='rationale'>Chicago Bulls 全印花緞面轟炸機外套，主題 D (復古外套) 符合；1990s 風格配色與做工清晰，賣家評價優異 (100% / 1985 則)，價格 US$55.4 相對台灣均價折扣約 40%；惟商品為 Made in China 且狀態為 Used，無吊牌或特殊限定故事加成。</div><div class='meta'>100.0% · 1985 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/xMwAAeSw1rlqCIhf/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>71</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/127868207331?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item1dc58a00e3:g:xMwAAeSw1rlqCIhf' target='_blank' rel='noopener'>MPLS Los Angeles Lakers Varsity Jacket Mens 3XL Blue G-III Carl Banks Basketball</a></div><div class='price'>US$124.99</div><div class='rationale'>Lakers 復古 Varsity 夾克（G-III Carl Banks 製造），主題 D (復古外套) 符合；1990s–2000s 年代風格、藍黃配色經典，細節照完整（領標、袖口、全身）。惟狀態為 Used（約 80–85%）、價格 US$124.99 相對台灣均價無明顯折扣優勢，球員熱度無加成。</div><div class='meta'>98.7% · 7319 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/2L0AAeSw6oxqCIiX/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>71</span><span class='theme'>D</span></div><div class='title'><a href='https://www.ebay.com/itm/127868203383?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item1dc589f177:g:2L0AAeSw6oxqCIiX' target='_blank' rel='noopener'>Los Angeles Lakers Starter Jacket Black Puffer NBA Streetwear Men’s Large</a></div><div class='price'>US$110.0</div><div class='rationale'>Lakers Starter 黑色羽絨外套符合主題 D (復古外套)，Starter 品牌與黑紫配色具 1990s–2000s 懷舊感；狀態 Excellent、賣家評價 100% (214 則) 可信度高。惟款式相對常見、無特殊年代或限定故事，價格 US$110 (約 NT$3,520) 略高於台灣二手均價，故評分中段偏上。</div><div class='meta'>100.0% · 214 feedback · Pre-owned - Excellent · BuyItNow · $0.0060</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/NwMAAOSwq3dnOFeL/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>D</span><span class='flag'>年代與製造不符</span><span class='flag'>標題誤導</span></div><div class='title'><a href='https://www.ebay.com/itm/117198085903?_skw=%28NBA%2Cbasketball%2C%22Space+Jam%22%2C%22Dream+Team%22%29+%28jacket%2Cwindbreaker%2C%22track+jacket%22%2C%22warm+up+jacket%22%2C%22warmup+jacket%22%2C%22shooting+jacket%22%2C%22starter+jacket%22%29&amp;hash=item1b498cdf0f:g:NwMAAOSwq3dnOFeL' target='_blank' rel='noopener'>NBA ATLANTA HAWKS Basketball Club 1968 Member Wind Breaker Jacket Large NWT</a></div><div class='price'>US$48.0</div><div class='rationale'>標題聲稱『1968 Member』但吊牌與製造工藝明顯為現代（2010s+）；Hawks 圓形徽章繡工與黃色拉鍊細節為近期風衣款式，非復古絕版品。主題 D (復古外套) 不成立，價格雖低但真偽訊號存疑。</div><div class='meta'>100.0% · 567 feedback · New · BuyItNow · $0.0060</div></div></div>
+<h2>高規格製造 — AU / pro-cut / team-issued / satin / fully embroidered (any era)</h2>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/3NYAAeSwEPFqCIHc/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>73</span><span class='theme'>B</span><span class='theme'>C</span><span class='flag'>球員身份未明確</span></div><div class='title'><a href='https://www.ebay.com/itm/366413023907?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item554feb0aa3:g:3NYAAeSwEPFqCIHc' target='_blank' rel='noopener'>2010-11 Portland Trail Blazers #28 Game Issued Black Practice Jersey NBA Live</a></div><div class='price'>US$99.99</div><div class='rationale'>2010-11 Trail Blazers Game Issued 練習衣，主題 B (非正規賽) + C (高規格製造) 符合；adidas 製造、NBA Live 10 贊助標清晰，黑白雙色版本具稀缺性。惟 #28 球員身份未在標題或描述中明確，無法確認是否為知名球員，故無法加成；價格 US$99.99 相對合理但無特別優勢。</div><div class='meta'>99.9% · 363818 feedback · condition unknown · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/NX8AAeSwLGBqCIHI/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>A</span><span class='theme'>B</span><span class='flag'>狀態有明顯汙漬</span><span class='flag'>非NBA球衣</span></div><div class='title'><a href='https://www.ebay.com/itm/137315579340?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item1ff8a575cc:g:NX8AAeSwLGBqCIHI' target='_blank' rel='noopener'>1990s FIBA Basketball Referee Game Issued Grey Jersey 2XL DP50657</a></div><div class='price'>US$99.99</div><div class='rationale'>1990s FIBA裁判賽事版灰色球衣，主題A(復古絕版)與B(非正規賽)符合；Champion製造、洗標清晰、價格低廉(約NT$3,200)。惟商品為裁判版而非球員版，前胸與腋下有明顯褐色汙漬與磨損，狀態約60-70%，且非賣家核心NBA球衣市場定位，故評分中段。</div><div class='meta'>99.9% · 363818 feedback · condition unknown · BuyItNow · $0.0062</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/m3MAAeSwWxpqCH~-/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>B</span><span class='theme'>C</span><span class='flag'>尺寸超大（6XL +4&quot;）</span><span class='flag'>無球員名字</span></div><div class='title'><a href='https://www.ebay.com/itm/800027155809?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=itemba45559d61:g:m3MAAeSwWxpqCH~-' target='_blank' rel='noopener'>New Orleans Pelicans Adidas Team Issued Practice Basketball Jersey White 6XL +4&quot;</a></div><div class='price'>US$49.99</div><div class='rationale'>Pelicans adidas Team Issued 練習衣符合主題 B (非正規賽) + C (高規格製造)；領標與製造細節清晰，賣家評價優異 (99.9%)。惟 6XL +4&quot; 超大尺寸市場受限，價格 US$49.99 相對便宜但難轉售；無球員名字降低故事性。</div><div class='meta'>99.9% · 363818 feedback · Used · BuyItNow · $0.0040</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/kTUAAeSwyTBqCIYD/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='flag'>NCAA非NBA</span><span class='flag'>球員熱度無</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/397955670472?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item5ca801a1c8:g:kTUAAeSwyTBqCIYD' target='_blank' rel='noopener'>NIKE AUTHENTIC NCAA FORDHAM UNIVERSITY RAMS GAME WORN BASKETBALL JERSEY SIZE XL</a></div><div class='price'>US$129.99</div><div class='rationale'>Fordham大學NCAA籃球衣，非NBA商品。賣家市場專注NBA絕版與高規格製造，NCAA college球衣超出核心定位範圍，縱使Nike Team製造與game worn標籤真偽可信，仍不符社團進貨主軸。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/jHgAAeSwTpVqCIWu/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='flag'>非 NBA 商品</span><span class='flag'>目標市場不符</span><span class='flag'>球員身份不明</span></div><div class='title'><a href='https://www.ebay.com/itm/397955668097?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item5ca8019881:g:jHgAAeSwTpVqCIWu' target='_blank' rel='noopener'>NIKE AUTHENTIC NCAA FORDHAM UNIVERSITY RAMS GAME WORN BASKETBALL JERSEY SIZE L</a></div><div class='price'>US$99.99</div><div class='rationale'>Fordham University NCAA 大學籃球球衣，非 NBA 官方商品。賣家社團專注 NBA 絕版球衣，此商品超出核心定位；球員號碼 12 無法識別身份，缺乏故事性與市場吸引力。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/FtUAAeSwIGhqCIP6/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='flag'>NCAA非NBA</span><span class='flag'>球員熱度無</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/397955659625?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item5ca8017769:g:FtUAAeSwIGhqCIP6' target='_blank' rel='noopener'>UNDER ARMOUR AUTHENTIC NCAA HARTFORD HAWKS GAME WORN  WHITE BASKETBALL JERSEY L</a></div><div class='price'>US$89.99</div><div class='rationale'>Hartford Hawks NCAA大學籃球球衣，非NBA商品，與賣家「NBA球衣世界」核心定位完全不符。雖Under Armour Authentic標籤清晰、狀態尚可，但NCAA商品在該社團市場無需求。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/asgAAeSwICVqCINE/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>B</span><span class='flag'>NCAA 非 NBA</span><span class='flag'>球員熱度極低</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/377188772763?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item57d233eb9b:g:asgAAeSwICVqCINE' target='_blank' rel='noopener'>UNDER ARMOUR AUTHENTIC NCAA HARTFORD HAWKS PRACTICE BASKETBALL JERSEY L</a></div><div class='price'>US$39.99</div><div class='rationale'>Hartford Hawks NCAA 練習衣雖符合主題 B (練習衣)，但賣家社團專注 NBA 球衣，NCAA 大學球衣超出核心市場；球員無名氣、無故事性，US$39.99 價格雖低但難以轉售。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/6AsAAeSwNIpqCHw9/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>35</span><span class='theme'>B</span><span class='flag'>NCAA 非 NBA</span><span class='flag'>球員熱度無</span><span class='flag'>市場定位不符</span></div><div class='title'><a href='https://www.ebay.com/itm/397955569336?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item5ca80016b8:g:6AsAAeSwNIpqCHw9' target='_blank' rel='noopener'>NIKE AUTHENTIC NCAA HARTFORD UNIVERSITY HAWKS PRACTICE BASKETBALL JERSEY SIZE L</a></div><div class='price'>US$39.99</div><div class='rationale'>Hartford University NCAA 練習衣雖符合主題 B (非正規賽)，但賣家核心市場為 NBA 球衣；NCAA 大學籃球與 NBA 職業球衣客群差異大，此商品不符社團進貨定位。</div><div class='meta'>100.0% · 14009 feedback · Used · BuyItNow · $0.0059</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/BzgAAeSw8fBqCIGK/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>32</span><span class='flag'>非 NBA 商品</span><span class='flag'>目標市場不符</span><span class='flag'>college basketball</span></div><div class='title'><a href='https://www.ebay.com/itm/366413023281?_skw=%28NBA%2Cbasketball%29+%28authentic%2C%22pro+cut%22%2C%22team+issued%22%2C%22game+issued%22%2C%22game+worn%22%2C%22game+used%22%2Csatin%2C%22fully+embroidered%22%2C%22tackle+twill%22%29+jersey&amp;hash=item554feb0831:g:BzgAAeSw8fBqCIGK' target='_blank' rel='noopener'>Michigan State Spartans Blank Style Game Issued White Basketball Jersey 52</a></div><div class='price'>US$149.99</div><div class='rationale'>Michigan State Spartans 為大學籃球隊，非 NBA 官方商品。賣家社團定位為「NBA 球衣世界」，此商品超出核心進貨範圍；雖賣家評價優異，但不符合社團主題。</div><div class='meta'>99.9% · 363818 feedback · condition unknown · BuyItNow · $0.0052</div></div></div>
+<h2>復古絕版 — vintage classic NBA (1990s — early 2000s)</h2>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/MSUAAeSwO0dqCIRn/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>78</span><span class='theme'>A</span><span class='theme'>C</span></div><div class='title'><a href='https://www.ebay.com/itm/198359685174?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item2e2f289836:g:MSUAAeSwO0dqCIRn' target='_blank' rel='noopener'>Vintage Champion NBA Dallas Mavericks #5 Jason Kidd Jersey Made In Usa Sz 40</a></div><div class='price'>US$85.0</div><div class='rationale'>Champion 年代 Dallas Mavericks Jason Kidd #5 復古球衣，主題 A (復古絕版) + C (高規格製造) 符合；洗標清晰「Made in USA」、Champion 標誌與年代相符，細節照完整。球員熱度普通但做工與年代優，價格 US$85 相對台灣均價折扣約 40%；狀態約 85–90%。</div><div class='meta'>100.0% · 585 feedback · Used · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/fv4AAeSwtmpqCIe9/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>76</span><span class='theme'>A</span><span class='theme'>C</span></div><div class='title'><a href='https://www.ebay.com/itm/198359693959?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item2e2f28ba87:g:fv4AAeSwtmpqCIe9' target='_blank' rel='noopener'>Vintage Champion Hurley #7 Sacramento Kings NBA Basketball Jersey Size 40 Black</a></div><div class='price'>US$49.0</div><div class='rationale'>Champion 製造 Sacramento Kings #7 黑色球衣，主題 A (復古絕版) + C (高規格製造) 符合；Champion 年代製造、洗標清晰「MADE IN U.S.A.」、NBA 與 Champion 標誌燙印平整，尺寸 40 符合成人版。狀態 Used 但無明顯破損，價格 US$49 相對台灣均價折扣約 40%；惟球員號碼 #7 無明確身份識別，降低故事性。</div><div class='meta'>100.0% · 585 feedback · Used · BuyItNow · $0.0062</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/~OEAAeSwobZpk8UH/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>75</span><span class='theme'>A</span></div><div class='title'><a href='https://www.ebay.com/itm/366413050474?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item554feb726a:g:~OEAAeSwobZpk8UH' target='_blank' rel='noopener'>Reebok NBA Miami Heat Dwayne Wade #3 Jersey White VTG Y2K Men XL Stitched</a></div><div class='price'>US$69.77</div><div class='rationale'>Reebok Y2K 年代 Wade 熱火白色球衣，符合主題 A (復古絕版)；Reebok 製造、電繡字體與年代相符，賣家評價優異 (100%/9536)。狀態 Used 但整體保存良好，價格 US$69.77 相對台灣均價有折扣。球員熱度加成有限，但做工與年代價值穩定。</div><div class='meta'>100.0% · 9536 feedback · Used · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/E3EAAeSwwSZqCIgK/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>A</span></div><div class='title'><a href='https://www.ebay.com/itm/277993485748?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item40b9b3f5b4:g:E3EAAeSwwSZqCIgK' target='_blank' rel='noopener'>Celtics Paul Pierce Jersey - green white - Nike Vintage NBA Jersey - 2XL - Y2K</a></div><div class='price'>US$149.0</div><div class='rationale'>Paul Pierce Celtics 白色 Nike Swingman Y2K 年代款 — 主題 A (復古絕版) 符合，Nike TEAM 製造標籤與 2XL LENGTH+2 尺寸標示年代相符；狀態約 85%，賣家評價 100% 且評價數充足 (72 則)。價格 US$149 約 NT$4,700，相對台灣均價無明顯折扣優勢，但球員熱度與年代故事性可支撐中高分。</div><div class='meta'>100.0% · 72 feedback · Used · BuyItNow · $0.0061</div></div></div>
+<div class='card mid'><div class='thumb'><img src='https://i.ebayimg.com/images/g/BzMAAeSw77xqCIbI/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>72</span><span class='theme'>A</span></div><div class='title'><a href='https://www.ebay.com/itm/277993475322?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item40b9b3ccfa:g:BzMAAeSw77xqCIbI' target='_blank' rel='noopener'>Celtics Paul Pierce Jersey - green white - Nike Vintage NBA Jersey - 2XL - Y2K</a></div><div class='price'>US$98.0</div><div class='rationale'>Paul Pierce Celtics 白色 Nike Swingman 復古款 — 主題 A (復古絕版) 符合，Y2K 年代與 Nike TEAM 製造標籤相符；狀態約 85%（輕微褪色），賣家評價優（100% / 72 則），價格 US$98 相對台灣均價折扣約 40%。惟為普通 Swingman 無高規格製造加成，球員熱度雖有但不足以大幅提升。</div><div class='meta'>100.0% · 72 feedback · Used · BuyItNow · $0.0060</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/N80AAeSw44JqCIfS/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>58</span><span class='theme'>A</span><span class='flag'>球員熱度低</span><span class='flag'>狀態描述模糊</span><span class='flag'>細節照不足</span></div><div class='title'><a href='https://www.ebay.com/itm/298323757883?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item45757b4b3b:g:N80AAeSw44JqCIfS' target='_blank' rel='noopener'>Reebok NBA San Antonio Spurs Manu Ginobili Jersey Shirt</a></div><div class='price'>US$135.0</div><div class='rationale'>Reebok 年代 Spurs Ginobili #20 白色球衣，主題 A (復古絕版) 符合，Reebok 製造與 NBA logo 燙印清晰；惟 Manu 球員熱度普通、狀態標示 Used 但無具體磨損描述、缺領標與洗標特寫照，價格 US$135 (約 NT$4,320) 相對偏高，難以判斷做工等級與實際保存狀況。</div><div class='meta'>99.0% · 629 feedback · Used · BuyItNow · $0.0056</div></div></div>
+<div class='card low'><div class='thumb'><img src='https://i.ebayimg.com/images/g/9SsAAeSw0y9pt1Zn/s-l1600.jpg' alt=''/></div><div class='body'><div class='score-row'><span class='score'>45</span><span class='flag'>球員熱度低</span><span class='flag'>款式常見</span><span class='flag'>價格無明顯優勢</span></div><div class='title'><a href='https://www.ebay.com/itm/406930942862?_skw=%28Champion%2CStarter%2C%22Pro+Player%22%2C%22Mitchell+Ness%22%2CJordan%2CNike%2CReebok%29+NBA+%28jersey%2Cauthentic%2C%22pro+cut%22%2Cvintage%2Cthrowback%2CABA%2C90s%2C%221990s%22%29&amp;hash=item5ebef96b8e:g:9SsAAeSw0y9pt1Zn' target='_blank' rel='noopener'>NWT Tyrese Maxey Nike Unisex Swingman Jersey White City Edition NBA White Size L</a></div><div class='price'>US$68.0</div><div class='rationale'>Tyrese Maxey 76ers City Edition Swingman — 普通 Swingman 款式，無主題加成（非復古、非高規格製造、非非正規賽）；球員熱度普通，US$68 折合台幣約 NT$2,160，相比台灣均價無明顯折扣優勢。</div><div class='meta'>100.0% · 3160 feedback · New · BuyItNow · $0.0051</div></div></div></div>
+<div class='panel' id='p-criteria'><div class='criteria-intro'>
+<b>整體流程：</b> 每則 eBay 新上架商品先經 4 個主題搜尋擷取（每個搜尋取 10 筆新上架），再以下列硬性規則過濾（價格、賣家評價、關鍵字封鎖等），最後由 Claude Haiku 4.5 依照下方評分準則打分。<br><br><b>排序方式：</b> 在每個搜尋類別中，商品依評分 <b>高至低</b> 排列。<br><br><b>分數區間：</b> 80+ 高分（綠）｜60–79 中段（黃）｜&lt;60 低分（紅）</div>
+<h2>🔎 四個搜尋類別</h2>
+<div class='search-card'><div class='name'>非正規賽 — practice / warm-up / All-Star / Olympic / FIBA / national team</div><div class='meta-line'>non_regular_season.yml · 通知門檻 score ≥ 75</div><div class='query'>(NBA,basketball) (practice,warmup,&quot;warm up&quot;,&quot;warm-up&quot;,shooting,shootaround,&quot;shoot around&quot;,&quot;all star&quot;,&quot;all-star&quot;,olympic,olympics,FIBA,&quot;summer league&quot;,&quot;rising stars&quot;,&quot;world cup&quot;,national,&quot;team usa&quot;,france) (jersey,shirt,top,reversible)</div><div class='filter-row'><b>價格區間：</b> US$25 – $500</div><details><summary>封鎖關鍵字（含全域 + 此搜尋專屬，共 28 個）</summary><div class='kw-list'><code>autograph</code> <code>bootleg</code> <code>card</code> <code>copy</code> <code>custom</code> <code>custom made</code> <code>fake</code> <code>girls</code> <code>infant</code> <code>kid&#x27;s</code> <code>kids</code> <code>ladies</code> <code>personalized</code> <code>photo</code> <code>poster</code> <code>print</code> <code>rep </code> <code>replica</code> <code>reproduction</code> <code>rookie card</code> <code>sticker</code> <code>swingman</code> <code>toddler</code> <code>trading card</code> <code>women</code> <code>women&#x27;s</code> <code>womens</code> <code>youth</code></div></details></div>
+<div class='search-card'><div class='name'>復古外套 — NBA outerwear / windbreakers / warm-up jackets</div><div class='meta-line'>outerwear.yml · 通知門檻 score ≥ 78</div><div class='query'>(NBA,basketball,&quot;Space Jam&quot;,&quot;Dream Team&quot;) (jacket,windbreaker,&quot;track jacket&quot;,&quot;warm up jacket&quot;,&quot;warmup jacket&quot;,&quot;shooting jacket&quot;,&quot;starter jacket&quot;)</div><div class='filter-row'><b>價格區間：</b> US$30 – $500</div><details><summary>封鎖關鍵字（含全域 + 此搜尋專屬，共 29 個）</summary><div class='kw-list'><code>DVD</code> <code>VHS</code> <code>bootleg</code> <code>card</code> <code>copy</code> <code>custom</code> <code>custom made</code> <code>fake</code> <code>girls</code> <code>hoodie</code> <code>infant</code> <code>kid&#x27;s</code> <code>kids</code> <code>ladies</code> <code>personalized</code> <code>poster</code> <code>rep </code> <code>replica</code> <code>reproduction</code> <code>sticker</code> <code>sweatshirt</code> <code>t-shirt</code> <code>tee</code> <code>toddler</code> <code>tshirt</code> <code>women</code> <code>women&#x27;s</code> <code>womens</code> <code>youth</code></div></details></div>
+<div class='search-card'><div class='name'>高規格製造 — AU / pro-cut / team-issued / satin / fully embroidered (any era)</div><div class='meta-line'>premium_manufacture.yml · 通知門檻 score ≥ 78</div><div class='query'>(NBA,basketball) (authentic,&quot;pro cut&quot;,&quot;team issued&quot;,&quot;game issued&quot;,&quot;game worn&quot;,&quot;game used&quot;,satin,&quot;fully embroidered&quot;,&quot;tackle twill&quot;) jersey</div><div class='filter-row'><b>價格區間：</b> US$30 – $700</div><details><summary>封鎖關鍵字（含全域 + 此搜尋專屬，共 26 個）</summary><div class='kw-list'><code>authentic look</code> <code>authentic style</code> <code>bootleg</code> <code>card</code> <code>copy</code> <code>custom</code> <code>custom made</code> <code>fake</code> <code>girls</code> <code>infant</code> <code>kid&#x27;s</code> <code>kids</code> <code>ladies</code> <code>look authentic</code> <code>personalized</code> <code>poster</code> <code>rep </code> <code>replica</code> <code>reproduction</code> <code>sticker</code> <code>swingman</code> <code>toddler</code> <code>women</code> <code>women&#x27;s</code> <code>womens</code> <code>youth</code></div></details></div>
+<div class='search-card'><div class='name'>復古絕版 — vintage classic NBA (1990s — early 2000s)</div><div class='meta-line'>vintage_classic.yml · 通知門檻 score ≥ 75</div><div class='query'>(Champion,Starter,&quot;Pro Player&quot;,&quot;Mitchell Ness&quot;,Jordan,Nike,Reebok) NBA (jersey,authentic,&quot;pro cut&quot;,vintage,throwback,ABA,90s,&quot;1990s&quot;)</div><div class='filter-row'><b>價格區間：</b> US$25 – $500</div><details><summary>封鎖關鍵字（含全域 + 此搜尋專屬，共 30 個）</summary><div class='kw-list'><code>bootleg</code> <code>card</code> <code>copy</code> <code>custom</code> <code>custom made</code> <code>fake</code> <code>girls</code> <code>hoodie</code> <code>infant</code> <code>kid&#x27;s</code> <code>kids</code> <code>ladies</code> <code>modern reissue</code> <code>personalized</code> <code>poster</code> <code>reissue</code> <code>rep </code> <code>replica</code> <code>reproduction</code> <code>sticker</code> <code>sweatshirt</code> <code>t-shirt</code> <code>tee</code> <code>toddler</code> <code>trading card</code> <code>tshirt</code> <code>women</code> <code>women&#x27;s</code> <code>womens</code> <code>youth</code></div></details></div>
+<h2>🛡️ 全域硬性過濾規則 (defaults.yml)</h2>
+<div class='search-card' style='border-left-color:#d8b95d'><div class='filter-row'><b>賣家評價：</b> ≥ 98% 且 ≥ 50 則評價</div><div class='filter-row'><b>寄送至：</b> US （海外代運倉地址）</div><div class='filter-row'><b>上架類型：</b> BuyItNow, Auction</div><div class='filter-row'><b>上架時間上限：</b> 120 分鐘內（太久前上架的不再算「新」）</div><div class='filter-row'><b>同一商品去重視窗：</b> 7 天</div></div>
+<h2>📐 評分準則 (rubric.md)</h2>
+<div class='rubric-wrap'><h1>評分準則 v0.2（starter rubric）</h1>
+<blockquote>
+<p><strong>用途</strong>：給 LLM 評分器使用。對每則 eBay 新上架商品給出 0–100 分與簡短繁體中文評語。
+<strong>來源</strong>：FB 社團「Allen Ray = NBA 球衣世界 =」社團簡介 + ~8 則近期商品貼文觀察。
+<strong>狀態</strong>：v0.2（v0.1 → v0.2 重構為「主題式」而非「球員式」組織）。
+         待累積 ~50 次出手 / 略過決策後依實際偏好微調。</p>
+</blockquote>
+<hr />
+<h2>1. 商品定位</h2>
+<p>賣家以「絕版、原版、復古、稀有」為核心。主打：</p>
+<ul>
+<li>老牌或熱門球員的 <strong>原版（AU / 球員版 / 緞面 AU）</strong> 球衣</li>
+<li>球員賽前周邊：<strong>練習衣、熱身衣、投籃服</strong></li>
+<li>復古外套：<strong>Champion、Jordan、Nike、adidas</strong> 1990s–2000s 風衣、夾克、Space Jam 系列</li>
+<li>球隊網訂製、官網限定、期間限定的版本</li>
+<li>明星賽、奧運、總冠軍等紀念性單品</li>
+<li>「異色」「電繡包邊」「緞面」等做工 / 材質升級款</li>
+</ul>
+<p>核心訴求：<strong>每件商品都有自己的故事，外面找不到。</strong></p>
+<p>觀察到的單件售價區間（TWD）：</p>
+<table>
+<thead>
+<tr>
+<th>等級</th>
+<th>範圍</th>
+<th>備例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中段</td>
+<td>NT$2,800–3,300</td>
+<td>KD 2014 明星賽電繡包邊 (NT$2,880)；Tony Parker AU 馬刺 (NT$2,880)；Wemby 法國練習衣 (NT$2,980)；1996 美國奧運 Champion 風衣 (NT$3,280)</td>
+</tr>
+<tr>
+<td>高段</td>
+<td>NT$4,500+</td>
+<td>Kobe 異色灰 AU 全新含吊牌 (NT$4,580)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>⚑ 核心原則</h2>
+<p><strong>球員熱度為加成項，永不作排除依據。</strong></p>
+<p>任何球員都有可能成為高分商品 — 評分以「<strong>主題契合 + 真偽 + 狀態 + 故事性</strong>」為主軸。
+明星球員（Kobe、Jordan、LeBron、Wemby、KD 等）能加分但非必要條件。
+冷門球員若在主題與真偽上強，仍可獲得 80+ 高分。</p>
+<p>舉例：</p>
+<ul>
+<li>Tony Parker（球員熱度低）+ 歐版 AU 馬刺絕版緞面（主題 A + C 強）→ 仍可 80+</li>
+<li>Kobe（球員熱度極高）+ 普通 Swingman + 條件差 → 約 50–60，球員熱度不會把整體拉高</li>
+</ul>
+<hr />
+<h2>2. 五大主題（評分的主軸）</h2>
+<table>
+<thead>
+<tr>
+<th>主題</th>
+<th>內容</th>
+<th>觀察範例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. 復古絕版</strong></td>
+<td>1990s–2000s 絕版年代 NBA 球衣 / 裝備；原版製造、原版字體與材質</td>
+<td>Champion 年代（~2002 前）Spurs / Bulls；ABA throwback；舊版 adidas NBA 第一代復古</td>
+</tr>
+<tr>
+<td><strong>B. 非正規賽</strong></td>
+<td>練習衣、熱身衣、投籃服、All-Star、Olympic、FIBA、國家隊、Summer League、Rising Stars</td>
+<td>Wemby 法國 G 等級練習衣；KD 2014 NOLA All-Star；1996 美國奧運紀念套組</td>
+</tr>
+<tr>
+<td><strong>C. 高規格製造</strong></td>
+<td>AU / 球員版 / 歐版 / 緞面 / 全字體電繡包邊 / pro cut / team issued / game worn / game issued</td>
+<td>LBJ 2010 熱火短窗口緞面 AU；歐版 Tony Parker AU；Kobe 異色灰 AU 含吊牌</td>
+</tr>
+<tr>
+<td><strong>D. 復古外套</strong></td>
+<td>NBA 風衣、夾克、track jacket、Space Jam、Dream Team</td>
+<td>1996 Champion 奧運風衣；Space Jam 大圖藍外套</td>
+</tr>
+<tr>
+<td><strong>E. 限定異色 / 短窗口</strong></td>
+<td>球隊網訂製、期間限定、特殊配色、賽季短窗口、聯名限定</td>
+<td>LBJ Floridians 緞面；異色灰 Kobe；Wemby 法國隊 G 等級</td>
+</tr>
+</tbody>
+</table>
+<p><strong>主題契合判斷規則：</strong></p>
+<ul>
+<li>商品強符合 <strong>1 個主題</strong> → 主題分滿分起點 70+</li>
+<li>商品同時涵蓋 <strong>2 個主題</strong> → 主題分起點 80+（如 Wemby 法國練習衣 = B + E）</li>
+<li>商品同時涵蓋 <strong>3+ 主題</strong> → 主題分起點 85+（如 1996 美國奧運 Champion 風衣 = A + B + D）</li>
+</ul>
+<hr />
+<h2>3. 評分指南</h2>
+<h3>高分商品 (80+)</h3>
+<table>
+<thead>
+<tr>
+<th>維度</th>
+<th>偏好</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主題契合度</td>
+<td>強符合 1 個或多個主題（見上表）</td>
+</tr>
+<tr>
+<td>製造等級</td>
+<td>AU 球員版 / 歐版 AU / 緞面 AU / R30 / G 等級訓練衣 / 全字體電繡包邊</td>
+</tr>
+<tr>
+<td>真偽訊號</td>
+<td>賽事贊助標清晰（如 MAIF、Stubhub）；Jordan/Nike/Champion/adidas R30 製造；字體與年代一致；含吊牌或合理說明</td>
+</tr>
+<tr>
+<td>球員熱度（加成）</td>
+<td>「老大」Kobe、Jordan、LeBron（姆斯）、KD（雷帝）、Wembanyama 等明星 — <strong>加分但非必要</strong></td>
+</tr>
+<tr>
+<td>球隊（加成）</td>
+<td>任何球隊皆可；近期奪冠 / 話題隊伍可加分</td>
+</tr>
+<tr>
+<td>年代與歷史</td>
+<td>1990s–2000s 絕版品；或具歷史意義的紀念性單品</td>
+</tr>
+<tr>
+<td>稀缺度</td>
+<td>異色、限量、期間限定（如球隊網短期訂製窗口）</td>
+</tr>
+<tr>
+<td>狀態</td>
+<td>全新含吊牌 / 95% / 九成新以上</td>
+</tr>
+<tr>
+<td>價格</td>
+<td>與台灣均價相比折扣 ≥ 30%</td>
+</tr>
+</tbody>
+</table>
+<h3>中段 (50–79)</h3>
+<ul>
+<li>主題契合度普通（部分符合但無強記憶點）</li>
+<li>狀態 70–90% 之間</li>
+<li>價格略低於台灣均價</li>
+<li>製造等級為普通 Swingman 但球員 / 球隊有話題性</li>
+</ul>
+<h3>低分 / 排除 (&lt; 50)</h3>
+<ul>
+<li>仿品、復刻、REP、replica</li>
+<li>非官方客製（custom）、印刷錯誤、字體偏離</li>
+<li>兒童（kids/youth）、女款（ladies/women）— 賣家市場不在此</li>
+<li>賣家評價 &lt; 98% 或評價數 &lt; 50</li>
+<li>模糊描述：「未確認真偽」「不保證」「可能是」</li>
+<li>細節照不足（無領標、無燙印特寫、無吊牌照）</li>
+<li>已退色、汙漬、不可逆破損</li>
+</ul>
+<p><strong>注意：不應以「球員冷門」「球隊不熱」單獨作為排除依據。</strong></p>
+<hr />
+<h2>4. 真偽 / 品質訊號</h2>
+<h3>正面 (+)</h3>
+<ul>
+<li><strong>製造特徵清晰</strong>：贊助標（MAIF、Stubhub、Rakuten 等）燙印清楚平整</li>
+<li><strong>字體與年代相符</strong>：例如 LeBron Heat 2010 球員實戰版幾乎全為 R30；早期短窗口才有緞面舊版</li>
+<li><strong>多角度細節照</strong>：領標、洗標、車線、燙印特寫、吊牌特寫</li>
+<li><strong>尺寸實測</strong>：衣長、腋下寬度、肩寬等具體數據</li>
+<li><strong>賣家評價</strong>：98%+ 且 ≥ 500 則評價</li>
+<li><strong>吊牌存在 OR 合理缺席</strong>：練習衣本來無吊牌可接受；號稱「全新球員版」卻無吊牌則需懷疑</li>
+</ul>
+<h3>負面 (–)</h3>
+<ul>
+<li>吊牌看起來太新，但商品標榜為老品</li>
+<li>字體 / 商標版本與年代不符（如 2010 後球衣卻用 1990s 字體）</li>
+<li>燙印歪斜、邊緣翻起、染印模糊</li>
+<li>賣家圖庫風格不一致（疑似轉售拼湊）</li>
+<li>同一賣家近期上多件「稀有」高價品但細節照都很少</li>
+<li>描述用「應該是」「我猜」「不附保證」等推諉用語</li>
+</ul>
+<hr />
+<h2>5. 評分權重</h2>
+<table>
+<thead>
+<tr>
+<th>因素</th>
+<th>權重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主題契合度（A–E 五大主題）</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>真偽可信度</td>
+<td>25%</td>
+</tr>
+<tr>
+<td>球員熱度（<strong>純加成，不作排除</strong>）</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>狀態 / 稀缺度 / 故事性</td>
+<td>15%</td>
+</tr>
+<tr>
+<td>價格相對台灣市場</td>
+<td>10%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>重要說明：</strong></p>
+<ul>
+<li>「球員熱度」只能加分，不能將分數壓到排除門檻以下</li>
+<li>球員冷門時，分數應由主題 / 真偽 / 故事性撐起；不可因球員不熱而扣到 50 以下</li>
+<li>反之，球員熱門但其他維度都弱時（如 Kobe Swingman 普品狀況差），分數不會因球員身分被拉高到 80+</li>
+<li>真偽訊號模糊時應扣分；寧可錯失也不要推送疑似仿品</li>
+<li>賣家擅長以故事創造價值 — 即使球員 / 球隊偏冷，若有強敘事框架（如「實著款」「短窗口」「異色限定」）仍可獲中高分</li>
+</ul>
+<hr />
+<h2>6. 輸出格式</h2>
+<p>每則商品請輸出 JSON：</p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 87,
+  &quot;themes&quot;: [&quot;B&quot;, &quot;E&quot;],
+  &quot;flags&quot;: [&quot;無&quot;],
+  &quot;rationale&quot;: &quot;Wemby 法國隊 G 等級雙面練習衣，主題 B (非正規賽) + E (限定) 雙符合；染印細節與 Jordan 製造合於年代，賣家評價佳，比台灣均價低約 58%。&quot;
+}
+</code></pre>
+<ul>
+<li><code>score</code>：0–100 整數</li>
+<li><code>themes</code>：字串陣列，列出符合的主題代號（A/B/C/D/E）；若無強主題則 <code>[]</code></li>
+<li><code>flags</code>：字串陣列，若無警示則 <code>["無"]</code></li>
+<li>常見 flags：<code>"疑似仿品"</code>、<code>"細節照不足"</code>、<code>"年代與字體不符"</code>、<code>"賣家評價過低"</code>、<code>"尺寸/性別不符"</code>、<code>"狀態描述模糊"</code></li>
+<li><code>rationale</code>：1–2 句繁體中文，明確指出主題契合與加分扣分主因</li>
+</ul>
+<hr />
+<h2>7. 範例</h2>
+<p><strong>範例 1 — 高分 (88) ｜ 球員熱門 + 多主題</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 88,
+  &quot;themes&quot;: [&quot;B&quot;, &quot;C&quot;],
+  &quot;flags&quot;: [&quot;無&quot;],
+  &quot;rationale&quot;: &quot;2014 NOLA 明星賽 KD 西區紅色全字體電繡包邊 — 主題 B (非正規賽) + C (高規格製造) 雙符合；95% 狀態，價格較台灣 NT$2,880 低約 35%。&quot;
+}
+</code></pre>
+<p><strong>範例 2 — 高分 (82) ｜ 球員冷門但主題強</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 82,
+  &quot;themes&quot;: [&quot;A&quot;, &quot;C&quot;],
+  &quot;flags&quot;: [&quot;無&quot;],
+  &quot;rationale&quot;: &quot;Tony Parker 歐版 AU 馬刺絕版緞面 — 主題 A (復古絕版) + C (高規格) 強符合；雖球員熱度普通，做工與年代均優，配合「Wemby 實著款」故事框架仍具市場性。&quot;
+}
+</code></pre>
+<p><strong>範例 3 — 中段 (62) ｜ 球員熱門但其他維度弱</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 62,
+  &quot;themes&quot;: [],
+  &quot;flags&quot;: [&quot;細節照不足&quot;],
+  &quot;rationale&quot;: &quot;Lakers Kobe 紫金 Swingman — 球員熱門但款式常見、無主題加成；賣家僅整件照，未附領標或洗標特寫，無法判斷做工。&quot;
+}
+</code></pre>
+<p><strong>範例 4 — 低分 (28) ｜ 真偽存疑</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 28,
+  &quot;themes&quot;: [&quot;A&quot;],
+  &quot;flags&quot;: [&quot;疑似仿品&quot;, &quot;年代與字體不符&quot;],
+  &quot;rationale&quot;: &quot;標榜 1990s Bulls Jordan AU 但燙印字體為 2010 後版本；賣家評價 96%、評價數僅 18 則。&quot;
+}
+</code></pre>
+<hr />
+<h2>8. 待補充（v0 → v1 過程中累積）</h2>
+<p>以下項目目前憑社團定位與小樣本推測，需以實際 50+ 次出手 / 略過決策資料修正：</p>
+<ul>
+<li>「主題契合度」的判定一致性 — LLM 是否能穩定識別 A–E 主題</li>
+<li>不同球員間的相對熱度權重（即使是加成項，仍可能有 Kobe &gt; LeBron &gt; 普通明星的差異）</li>
+<li>各主題下的目標進貨價與利潤率</li>
+<li>球隊近期戰績影響權重（例如某隊近期奪冠，相關商品是否該即時加成）</li>
+<li>「電繡包邊」「全染印」「異色」「期間限定」等做工 / 稀缺特色的相對偏好排序</li>
+<li>賣家黑名單（不可信賣家識別模式）</li>
+<li>季節性效應（季前、季後、選秀、交易截止）對評分的影響</li>
+<li>「實著款」「短窗口」等故事框架的觸發條件與適用範圍</li>
+</ul></div></div>
+</div>
+</div>
+<div class='footer'>Generated 2026-05-16 23:24:14</div>
+</body></html>
