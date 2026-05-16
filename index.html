@@ -1,9 +1,14 @@
 <!DOCTYPE html><html lang='zh-Hant'><head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
+<meta name='theme-color' content='#0e0e10'>
 <title>eBay watch bot — smoke test</title>
 <style>
 :root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
-       background: #0e0e10; color: #e8e8e8; padding: 24px; max-width: 1100px; margin: 0 auto; line-height: 1.45; }
+       background: #0e0e10; color: #e8e8e8; padding: 24px; max-width: 1100px; margin: 0 auto;
+       line-height: 1.45; -webkit-text-size-adjust: 100%; }
 h1 { color: #fff; margin: 0 0 4px; }
 .subtitle { color: #888; font-size: 13px; margin-bottom: 18px; }
 h2 { color: #5dd8a6; border-bottom: 1px solid #2a2a2e; padding-bottom: 6px; margin-top: 36px; }
@@ -83,9 +88,70 @@ details[open] summary { margin-bottom: 8px; }
 .rubric-wrap pre { background: #0e0e10; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
 .rubric-wrap blockquote { border-left: 3px solid #5dd8a6; padding: 4px 12px; color: #aaa; background: #14181a; margin: 12px 0; }
 .rubric-wrap ul, .rubric-wrap ol { padding-left: 22px; }
+
+/* ===== Mobile (phone portrait) ===== */
+@media (max-width: 720px) {
+  body { padding: 12px; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; margin-top: 28px; }
+  h3 { font-size: 15px; }
+  .subtitle { font-size: 11px; margin-bottom: 12px; }
+
+  /* Tabs: tighter, allow horizontal scroll if needed */
+  .tab-labels { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .tab-labels::-webkit-scrollbar { display: none; }
+  .tab-labels label { padding: 9px 12px; font-size: 13px; white-space: nowrap; }
+
+  /* Summary */
+  .summary { padding: 10px 12px; }
+  .summary td { padding: 2px 12px 2px 0; font-size: 12px; }
+
+  /* Stack cards vertically: thumbnail on top, body below */
+  .card { flex-direction: column; padding: 12px; }
+  .thumb { flex: 0 0 auto; margin-right: 0; margin-bottom: 10px; width: 100%; text-align: center; }
+  .thumb img { max-width: 100%; max-height: 280px; width: auto; height: auto; object-fit: contain; }
+  .score { font-size: 26px; }
+  .title a { font-size: 14px; word-break: break-word; }
+  .price { font-size: 14px; }
+  .rationale { font-size: 13px; line-height: 1.5; }
+  .meta { font-size: 11px; word-break: break-word; }
+  .theme, .flag { font-size: 11px; padding: 2px 7px; }
+
+  /* Criteria — search cards */
+  .criteria-intro { padding: 12px; font-size: 13px; }
+  .search-card { padding: 12px; }
+  .search-card .name { font-size: 14px; }
+  .search-card .meta-line { font-size: 11px; }
+  .search-card .query { font-size: 11px; padding: 8px; line-height: 1.4; }
+  .search-card .filter-row { font-size: 12px; }
+  .kw-list { font-size: 11px; }
+  .kw-list code { font-size: 10px; padding: 1px 5px; }
+
+  /* Rubric markdown — make wide tables horizontally scrollable */
+  .rubric-wrap { padding: 12px; }
+  .rubric-wrap h1 { font-size: 18px; }
+  .rubric-wrap h2 { font-size: 16px; }
+  .rubric-wrap h3 { font-size: 14px; }
+  .rubric-wrap p, .rubric-wrap li { font-size: 13px; }
+  .rubric-wrap table { display: block; overflow-x: auto; max-width: 100%;
+                       white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .rubric-wrap th, .rubric-wrap td { padding: 5px 8px; font-size: 12px; white-space: normal; }
+  .rubric-wrap pre { font-size: 11px; padding: 10px; }
+  .rubric-wrap code { font-size: 12px; word-break: break-word; }
+  .rubric-wrap blockquote { font-size: 13px; }
+}
+
+/* ===== Very small phones ===== */
+@media (max-width: 380px) {
+  body { padding: 8px; }
+  h1 { font-size: 20px; }
+  .tab-labels label { padding: 8px 10px; font-size: 12px; }
+  .thumb img { max-height: 240px; }
+  .score { font-size: 24px; }
+}
 </style></head><body>
 <h1>eBay watch bot — smoke test</h1>
-<div class='subtitle'>2026-05-16 23:24:14 · run summary at top of Results tab</div>
+<div class='subtitle'>2026-05-16 23:38:27 · run summary at top of Results tab</div>
 <div class='tabs'>
 <input type='radio' name='tabs' id='t-results' checked>
 <input type='radio' name='tabs' id='t-criteria'>
@@ -437,5 +503,5 @@ details[open] summary { margin-bottom: 8px; }
 </ul></div></div>
 </div>
 </div>
-<div class='footer'>Generated 2026-05-16 23:24:14</div>
+<div class='footer'>Generated 2026-05-16 23:38:27</div>
 </body></html>
